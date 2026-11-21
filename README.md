@@ -26,6 +26,10 @@ There is nothing to install. Add `uses: ExaDev/repo-index@v1` to a workflow in t
 
 ## Use
 
+First add the markers to the README that should hold the index. The action creates them at the end of the file if they are missing, but placing them yourself decides where the list goes.
+
+The smallest workflow needs no secret. It indexes the owner's public repositories with the workflow's own token:
+
 ```yaml
 name: Repo index
 on:
@@ -44,8 +48,6 @@ jobs:
         uses: ExaDev/repo-index@v1
         with:
           output-paths: README.md
-          app-id: ${{ secrets.REPO_INDEX_APP_ID }}
-          app-private-key: ${{ secrets.REPO_INDEX_APP_KEY }}
       - if: steps.index.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
@@ -54,13 +56,27 @@ jobs:
           git push
 ```
 
+To preview the result without writing anything, set `dry-run: true`: the index is printed in the job log. The push step fails on a branch that requires pull requests; push to a branch and open one instead in that case.
+
+To include private repositories as well, add a credential (see [Credentials](#credentials)) and set `visibility: all`:
+
+```yaml
+- uses: ExaDev/repo-index@v1
+  with:
+    output-paths: README.md
+    visibility: all
+    private-repos: include
+    app-id: ${{ secrets.REPO_INDEX_APP_ID }}
+    app-private-key: ${{ secrets.REPO_INDEX_APP_KEY }}
+```
+
 ## Credentials
 
 Exactly one of these, and the owner is read with metadata access only.
 
 - **Nothing.** The workflow's own token is used. It sees public repositories only, which is all a public profile README needs.
 - **`token`**: a fine-grained personal access token with read-only Metadata on the owner's repositories.
-- **`app-id` and `app-private-key`**: a GitHub App with read-only Metadata, installed on the owner. An installation token is minted for `owner`.
+- **`app-id` and `app-private-key`**: a GitHub App with read-only Metadata, installed on the owner. An installation token is minted for `owner`. Create the App under Settings, Developer settings, GitHub Apps (see [GitHub's guide](https://docs.github.com/en/apps/creating-github-apps)), install it on the owner, and store its id and private key as repository secrets.
 
 ## Public output
 
@@ -146,7 +162,7 @@ Open an issue at https://github.com/ExaDev/repo-index/issues with the workflow s
 
 ## Development
 
-Source is plain TypeScript run directly by Node's type stripping, so there is no build step.
+Source is plain TypeScript run directly by Node's type stripping, so there is no build step. It needs Node 26 or later.
 
 ```bash
 npm ci
