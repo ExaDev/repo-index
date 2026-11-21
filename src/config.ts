@@ -86,10 +86,30 @@ export interface Settings {
   readonly languageAliases: Map<string, string>;
   readonly ignoredLanguages: Set<string>;
   readonly token: string;
+  readonly credentialKind: CredentialKind;
+}
+
+export type CredentialKind = "token" | "app" | "default";
+
+/**
+ * The default workflow token sees only public data (and its own repository), so a run asked for private repositories with it would silently list public ones only. That is refused instead.
+ */
+export function assertCredentialSeesPrivate(
+  visibility: "public" | "all",
+  kind: CredentialKind,
+): void {
+  if (visibility === "all" && kind === "default") {
+    throw new Error(
+      "visibility: all needs a credential that can see private repositories; set token, or app-id with app-private-key (the secrets may be unset or empty).",
+    );
+  }
 }
 
 /** Resolves the credential: a PAT, a minted App token (passed in as `app-token`), or the default workflow token; a PAT and an App together are rejected. */
-function credential(): string {
+function credential(): {
+  readonly token: string;
+  readonly kind: CredentialKind;
+} {
   const pat = env("token");
   const appToken = env("app-token");
   if (pat !== "" && (env("app-id") !== "" || appToken !== "")) {
@@ -101,11 +121,18 @@ function credential(): string {
     throw new Error("app-id and app-private-key must be given together.");
   }
   const token = firstNonEmpty(pat, appToken, env("github-token"));
+  const kind: CredentialKind =
+    pat !== "" ? "token" : appToken !== "" ? "app" : "default";
   if (token === "")
     throw new Error(
       "No credential: set token, app-id with app-private-key, or the default github-token.",
     );
-  return token;
+  return { token, kind };
+}
+
+function credentialFields(): { token: string; credentialKind: CredentialKind } {
+  const { token, kind } = credential();
+  return { token, credentialKind: kind };
 }
 
 export function readSettings(): Settings {
@@ -152,6 +179,6 @@ export function readSettings(): Settings {
     topicPriority: list(env("topic-priority")).map((t) => t.toLowerCase()),
     languageAliases: stringMap(env("language-aliases")),
     ignoredLanguages: lowerSet(env("ignored-languages")),
-    token: credential(),
+    ...credentialFields(),
   };
 }

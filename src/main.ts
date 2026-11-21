@@ -1,5 +1,5 @@
 import { appendFileSync } from "node:fs";
-import { readSettings } from "./config.ts";
+import { assertCredentialSeesPrivate, readSettings } from "./config.ts";
 import type { Settings } from "./config.ts";
 import { fetchRepos, isRepositoryPrivate } from "./github.ts";
 import { findMissing, summaryTable, warning } from "./hygiene.ts";
@@ -56,6 +56,7 @@ function setOutput(name: string, value: string): void {
 export async function run(): Promise<void> {
   const settings = readSettings();
   const { config } = settings;
+  assertCredentialSeesPrivate(config.visibility, settings.credentialKind);
 
   const repos = await fetchRepos(
     settings.token,

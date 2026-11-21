@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { repo } from "./fixtures.ts";
 import { assertSafeToName, select } from "./main.ts";
+import { assertCredentialSeesPrivate } from "./config.ts";
 import type { Settings } from "./config.ts";
 
 function settings(
@@ -38,6 +39,7 @@ function settings(
     languageAliases: new Map(),
     ignoredLanguages: new Set(),
     token: "t",
+    credentialKind: "token",
   };
 }
 
@@ -118,5 +120,20 @@ test("a rule cannot smuggle a private name into a public target", () => {
   ).included;
   assert.throws(() => {
     assertSafeToName(included, false);
+  });
+});
+
+test("asking for private repositories with only the default token is refused", () => {
+  assert.throws(() => {
+    assertCredentialSeesPrivate("all", "default");
+  }, /needs a credential/);
+  assert.doesNotThrow(() => {
+    assertCredentialSeesPrivate("all", "app");
+  });
+  assert.doesNotThrow(() => {
+    assertCredentialSeesPrivate("all", "token");
+  });
+  assert.doesNotThrow(() => {
+    assertCredentialSeesPrivate("public", "default");
   });
 });
