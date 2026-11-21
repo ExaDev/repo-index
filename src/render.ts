@@ -1,3 +1,4 @@
+import { compareByActivity } from "./activity.ts";
 import { languageCounts, visibleLanguages } from "./languages.ts";
 import type { LanguageOptions } from "./languages.ts";
 import type { Group, Repo } from "./types.ts";
@@ -15,7 +16,9 @@ export type Column = (typeof COLUMNS)[number];
 export interface RenderOptions {
   readonly format: "table" | "list";
   readonly columns: readonly Column[];
-  readonly sort: "name" | "updated" | "stars";
+  readonly sort: "activity" | "name" | "updated" | "stars";
+  /** Half-life, in days, of a commit's weight when sorting by activity. */
+  readonly halfLifeDays: number;
   readonly languages: LanguageOptions;
   /** Number of repositories counted but not named. */
   readonly countedPrivate: number;
@@ -65,20 +68,27 @@ function columnValue(
 
 function sortRepos(
   repos: readonly Repo[],
-  sort: RenderOptions["sort"],
+  options: Pick<RenderOptions, "sort" | "halfLifeDays">,
 ): Repo[] {
   const byName = (a: Repo, b: Repo): number => a.name.localeCompare(b.name);
-  return [...repos].sort((a, b) => {
-    if (sort === "stars") return b.stars - a.stars || byName(a, b);
-    if (sort === "updated") {
-      return (b.pushedAt ?? "").localeCompare(a.pushedAt ?? "") || byName(a, b);
+  const compare = ((): ((a: Repo, b: Repo) => number) => {
+    if (options.sort === "activity") {
+      return compareByActivity(options.halfLifeDays);
     }
-    return byName(a, b);
-  });
+    if (options.sort === "stars") {
+      return (a, b) => b.stars - a.stars || byName(a, b);
+    }
+    if (options.sort === "updated") {
+      return (a, b) =>
+        (b.pushedAt ?? "").localeCompare(a.pushedAt ?? "") || byName(a, b);
+    }
+    return byName;
+  })();
+  return [...repos].sort(compare);
 }
 
 function renderGroup(group: Group, options: RenderOptions): string {
-  const repos = sortRepos(group.repos, options.sort);
+  const repos = sortRepos(group.repos, options);
   const heading = group.label === "" ? [] : [`### ${group.label}`, ""];
   if (options.format === "list") {
     return [

@@ -1,10 +1,14 @@
 import * as z from "zod";
+import { MS_PER_DAY, WINDOW_DAYS } from "./activity.ts";
 import type { Repo } from "./types.ts";
 
+/** Repositories per page. Each carries four commit-history counts, so a full page of 100 was observed to time out with a 502; a smaller page keeps each request cheap. */
+const PAGE_SIZE = 25;
+
 const QUERY = `
-  query ($login: String!, $after: String, $privacy: RepositoryPrivacy) {
+  query ($login: String!, $first: Int!, $after: String, $privacy: RepositoryPrivacy, $since7: GitTimestamp!, $since30: GitTimestamp!, $since90: GitTimestamp!, $since365: GitTimestamp!) {
     repositoryOwner(login: $login) {
-      repositories(first: 100, after: $after, privacy: $privacy, ownerAffiliations: OWNER, orderBy: { field: NAME, direction: ASC }) {
+      repositories(first: $first, after: $after, privacy: $privacy, ownerAffiliations: OWNER, orderBy: { field: NAME, direction: ASC }) {
         pageInfo { hasNextPage endCursor }
         nodes {
           name
@@ -20,13 +24,29 @@ const QUERY = `
           primaryLanguage { name }
           languages(first: 20, orderBy: { field: SIZE, direction: DESC }) { edges { size node { name } } }
           repositoryTopics(first: 20) { nodes { topic { name } } }
+          defaultBranchRef { target { ... on Commit { last7: history(since: $since7) { totalCount } last30: history(since: $since30) { totalCount } last90: history(since: $since90) { totalCount } last365: history(since: $since365) { totalCount } } } }
         }
       }
     }
   }
 `;
 
+const Count = z.object({ totalCount: z.number() });
+
 const RepoNode = z.object({
+  defaultBranchRef: z
+    .object({
+      target: z
+        .object({
+          last7: Count,
+          last30: Count,
+          last90: Count,
+          last365: Count,
+        })
+        .partial()
+        .nullable(),
+    })
+    .nullable(),
   name: z.string(),
   nameWithOwner: z.string(),
   url: z.string(),
@@ -65,6 +85,7 @@ const Page = z.object({
 });
 
 export function toRepo(node: z.infer<typeof RepoNode>): Repo {
+  const target = node.defaultBranchRef?.target;
   return {
     name: node.name,
     nameWithOwner: node.nameWithOwner,
@@ -85,6 +106,12 @@ export function toRepo(node: z.infer<typeof RepoNode>): Repo {
       name: e.node.name,
       size: e.size,
     })),
+    commits: {
+      last7: target?.last7?.totalCount ?? 0,
+      last30: target?.last30?.totalCount ?? 0,
+      last90: target?.last90?.totalCount ?? 0,
+      last365: target?.last365?.totalCount ?? 0,
+    },
   };
 }
 
@@ -118,12 +145,28 @@ export async function fetchRepos(
   token: string,
   login: string,
   privacy: "PUBLIC" | null,
+  now: Readonly<Date>,
 ): Promise<Repo[]> {
+  const [since7, since30, since90, since365] = WINDOW_DAYS.map((days) =>
+    new Date(now.getTime() - days * MS_PER_DAY).toISOString(),
+  );
   const repos: Repo[] = [];
   let after: string | null = null;
   for (;;) {
     const page = Page.parse(
-      await post(token, { query: QUERY, variables: { login, after, privacy } }),
+      await post(token, {
+        query: QUERY,
+        variables: {
+          login,
+          first: PAGE_SIZE,
+          after,
+          privacy,
+          since7,
+          since30,
+          since90,
+          since365,
+        },
+      }),
     );
     const owner = page.data.repositoryOwner;
     if (owner === null)

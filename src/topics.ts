@@ -9,6 +9,8 @@ export interface GroupingOptions {
   readonly topicPriority: readonly string[];
   readonly languageAliases: ReadonlyMap<string, string>;
   readonly ungroupedLabel: string;
+  /** When given, headings that are not named topic groups are ordered by this score of their repositories, highest first, instead of alphabetically. */
+  readonly groupScore?: (repos: readonly Repo[]) => number;
 }
 
 /** Applies aliases (case-insensitive) then drops ignored topics, de-duplicating the result. */
@@ -82,9 +84,14 @@ export function groupRepos(
     .sort(([a], [b]) => {
       const byRank = rank(a) - rank(b);
       if (byRank !== 0) return byRank;
-      return rank(a) === 0
-        ? named.indexOf(a) - named.indexOf(b)
-        : a.localeCompare(b);
+      if (rank(a) === 0) return named.indexOf(a) - named.indexOf(b);
+      const score = options.groupScore;
+      if (score !== undefined) {
+        const byScore =
+          score(buckets.get(b) ?? []) - score(buckets.get(a) ?? []);
+        if (byScore !== 0) return byScore;
+      }
+      return a.localeCompare(b);
     })
     .map(([label, members]) => ({ label, repos: members }));
 }

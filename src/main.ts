@@ -1,4 +1,5 @@
 import { appendFileSync } from "node:fs";
+import { activityScore } from "./activity.ts";
 import { assertCredentialSeesPrivate, readSettings } from "./config.ts";
 import type { Settings } from "./config.ts";
 import { fetchRepos, isRepositoryPrivate } from "./github.ts";
@@ -62,6 +63,7 @@ export async function run(): Promise<void> {
     settings.token,
     config.owner,
     config.visibility === "public" ? "PUBLIC" : null,
+    new Date(),
   );
   const { included, countedPrivate } = select(repos, settings);
   if (included.length === 0) {
@@ -87,11 +89,21 @@ export async function run(): Promise<void> {
     topicPriority: settings.topicPriority,
     languageAliases: settings.languageAliases,
     ungroupedLabel: config.ungroupedLabel,
+    ...(config.sort === "activity"
+      ? {
+          groupScore: (members: readonly Repo[]) =>
+            members.reduce(
+              (sum, r) => sum + activityScore(r, config.activityHalfLife),
+              0,
+            ),
+        }
+      : {}),
   });
   const body = renderIndex(groups, {
     format: config.format,
     columns: config.columns,
     sort: config.sort,
+    halfLifeDays: config.activityHalfLife,
     languages: {
       limit: config.languageLimit,
       minShare: config.minLanguageShare,

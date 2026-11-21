@@ -38,6 +38,37 @@ test("a repository without topics is ungrouped, and ungrouped sorts last", () =>
   assert.deepEqual(labels(groups), ["alpha", "zeta", "Ungrouped"]);
 });
 
+test("with a group score, unnamed headings are ordered by it, then alphabetically", () => {
+  const groups = groupRepos(
+    [
+      repo("a", { topics: ["alpha"], stars: 1 }),
+      repo("b", { topics: ["beta"], stars: 5 }),
+      repo("c", { topics: ["gamma"], stars: 5 }),
+      repo("d"),
+    ],
+    { ...base, groupScore: (rs) => rs.reduce((s, r) => s + r.stars, 0) },
+  );
+  assert.deepEqual(labels(groups), ["beta", "gamma", "alpha", "Ungrouped"]);
+});
+
+test("named groups keep their listed order even with a group score", () => {
+  const groups = groupRepos(
+    [
+      repo("a", { topics: ["x"], stars: 1 }),
+      repo("b", { topics: ["y"], stars: 9 }),
+    ],
+    {
+      ...base,
+      topicGroups: new Map([
+        ["First", ["x"]],
+        ["Second", ["y"]],
+      ]),
+      groupScore: (rs) => rs.reduce((s, r) => s + r.stars, 0),
+    },
+  );
+  assert.deepEqual(labels(groups), ["First", "Second"]);
+});
+
 test("without a priority the alphabetically first topic is the heading", () => {
   const groups = groupRepos([repo("a", { topics: ["b", "a"] })], base);
   assert.deepEqual(labels(groups), ["a"]);

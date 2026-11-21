@@ -44,8 +44,11 @@ inputs:
     description: Table columns in order, from name, description, languages, stars, updated and visibility.
     default: name, description, languages
   sort:
-    description: name, updated or stars.
-    default: name
+    description: activity, name, updated or stars. activity ranks by recent commits on the default branch, with each commit's weight halving every activity-half-life days, so the most recently busy repositories come first and the list tails off as work goes quiet.
+    default: activity
+  activity-half-life:
+    description: Days over which a commit's weight halves when sorting by activity.
+    default: "30"
   ungrouped-label:
     description: Heading for repositories that fall in no group.
     default: Ungrouped
@@ -135,6 +138,7 @@ runs:
         INPUT_FORMAT: ${{ inputs.format }}
         INPUT_COLUMNS: ${{ inputs.columns }}
         INPUT_SORT: ${{ inputs.sort }}
+        INPUT_ACTIVITY_HALF_LIFE: ${{ inputs.activity-half-life }}
         INPUT_UNGROUPED_LABEL: ${{ inputs.ungrouped-label }}
         INPUT_GROUP_BY: ${{ inputs.group-by }}
         INPUT_TOPIC_ALIASES: ${{ inputs.topic-aliases }}

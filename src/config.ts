@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import * as z from "zod";
 import { parse } from "yaml";
+import { DEFAULT_HALF_LIFE_DAYS } from "./activity.ts";
 import { PERCENT } from "./languages.ts";
 import { COLUMNS } from "./render.ts";
 import { RulesSchema } from "./rules.ts";
@@ -65,7 +66,8 @@ export const Config = z.object({
   marker: z.string().regex(/^[\w.-]+$/),
   format: z.enum(["table", "list"]),
   columns: z.array(z.enum(COLUMNS)).min(1),
-  sort: z.enum(["name", "updated", "stars"]),
+  sort: z.enum(["activity", "name", "updated", "stars"]),
+  activityHalfLife: z.coerce.number().positive(),
   ungroupedLabel: z.string().min(1),
   groupBy: z.enum(["topic", "language", "none"]),
   multiGroup: bool,
@@ -151,7 +153,11 @@ export function readSettings(): Settings {
     columns: list(
       firstNonEmpty(env("columns"), "name, description, languages"),
     ),
-    sort: firstNonEmpty(env("sort"), "name"),
+    sort: firstNonEmpty(env("sort"), "activity"),
+    activityHalfLife: firstNonEmpty(
+      env("activity-half-life"),
+      String(DEFAULT_HALF_LIFE_DAYS),
+    ),
     ungroupedLabel: firstNonEmpty(env("ungrouped-label"), "Ungrouped"),
     groupBy: firstNonEmpty(env("group-by"), "topic"),
     multiGroup: firstNonEmpty(env("multi-group"), "false"),

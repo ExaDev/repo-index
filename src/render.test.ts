@@ -8,6 +8,7 @@ const options: RenderOptions = {
   format: "table",
   columns: ["name", "description", "languages"],
   sort: "name",
+  halfLifeDays: 30,
   languages: { limit: 5, minShare: 5, ignored: new Set(), aliases: new Map() },
   countedPrivate: 0,
 };
@@ -81,6 +82,26 @@ test("list format renders one line per repository", () => {
     format: "list",
   });
   assert.match(out, /- \[a\]\(https:\/\/github.com\/acme\/a\): The a project/);
+});
+
+test("sort by activity puts the busiest recent repository first", () => {
+  const out = renderIndex(
+    [
+      {
+        label: "x",
+        repos: [
+          repo("quiet", {
+            commits: { last7: 0, last30: 0, last90: 0, last365: 2 },
+          }),
+          repo("busy", {
+            commits: { last7: 9, last30: 20, last90: 30, last365: 40 },
+          }),
+        ],
+      },
+    ],
+    { ...options, sort: "activity" },
+  );
+  assert.ok(out.indexOf("[busy]") < out.indexOf("[quiet]"));
 });
 
 test("sort by stars puts the most starred first", () => {

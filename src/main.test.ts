@@ -21,6 +21,7 @@ function settings(
       format: "table",
       columns: ["name"],
       sort: "name",
+      activityHalfLife: 30,
       ungroupedLabel: "Ungrouped",
       groupBy: "topic",
       multiGroup: false,

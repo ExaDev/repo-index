@@ -16,6 +16,7 @@ export function repo(name: string, overrides: Partial<Repo> = {}): Repo {
     topics: [],
     primaryLanguage: null,
     languages: [],
+    commits: { last7: 0, last30: 0, last90: 0, last365: 0 },
     ...overrides,
   };
 }
