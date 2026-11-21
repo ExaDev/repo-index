@@ -1,3 +1,9 @@
+## [1.1.0](https://github.com/ExaDev/repo-index/compare/v1.0.1...v1.1.0) (2026-11-21)
+
+### Features
+
+- sort by activity with a recency half-life by default ([cf85a35](https://github.com/ExaDev/repo-index/commit/cf85a355c676cb04895c25b6ed0294bf5b81c5d7))
+
 ## [1.0.1](https://github.com/ExaDev/repo-index/compare/v1.0.0...v1.0.1) (2026-11-21)
 
 ### Bug Fixes
