@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/ExaDev/repo-index/compare/v1.0.0...v1.0.1) (2026-11-21)
+
+### Bug Fixes
+
+- refuse visibility all when only the default token is available ([7697293](https://github.com/ExaDev/repo-index/commit/76972936c05ff52db6efa9a2bc938ce7c6daa250))
+
 ## 1.0.0 (2026-11-21)
 
 ### Features
