@@ -1,0 +1,151 @@
+name: Repo index
+description: Writes a grouped index of an owner's repositories, with descriptions and languages, into marked regions of README files.
+author: ExaDev
+branding:
+  icon: list
+  color: blue
+
+inputs:
+  owner:
+    description: User or organisation whose repositories are indexed. Defaults to the owner of the repository running the workflow.
+  token:
+    description: A fine-grained personal access token with read-only Metadata access. Give at most one of token and app-id. With neither, the workflow's own token is used, which sees public repositories only.
+  app-id:
+    description: A GitHub App's id; an installation token is minted for owner. Needs app-private-key.
+  app-private-key:
+    description: The private key of the GitHub App named by app-id.
+  github-token:
+    description: Fallback credential when neither token nor app-id is given.
+    default: ${{ github.token }}
+  visibility:
+    description: public fetches public repositories only; all also fetches private ones the credential can see.
+    default: public
+  private-repos:
+    description: What to do with private repositories. exclude omits them, count adds them to a total without naming them, include names them (refused unless the repository being written to is private).
+    default: exclude
+  include-archived:
+    description: Include archived repositories.
+    default: "false"
+  include-forks:
+    description: Include forks.
+    default: "false"
+  rules:
+    description: Ordered include, count or exclude rules as YAML (inline, or a path to a file). The first matching rule wins. Each rule has a match (a name glob over owner/repo, a /regex/, or a map of visibility, org, topic and lang) and an action.
+  output-paths:
+    description: Files to write, one per line. Paths that resolve to the same file, such as a symlink and its target, are written once.
+    required: true
+  marker:
+    description: Name used in the start and end comments that bound the generated region.
+    default: repo-index
+  format:
+    description: table or list.
+    default: table
+  columns:
+    description: Table columns in order, from name, description, languages, stars, updated and visibility.
+    default: name, description, languages
+  sort:
+    description: name, updated or stars.
+    default: name
+  ungrouped-label:
+    description: Heading for repositories that fall in no group.
+    default: Ungrouped
+  group-by:
+    description: topic, language or none.
+    default: topic
+  topic-aliases:
+    description: YAML map of variant topic to canonical topic, applied first and case-insensitively.
+  ignore-topics:
+    description: Topics left out of grouping, as a YAML list or comma-separated.
+  topic-groups:
+    description: YAML map of group heading to the topics it merges (inline or a path). A repository goes in the first group any of its topics matches.
+  multi-group:
+    description: Show a repository under every matching topic group instead of the first.
+    default: "false"
+  topic-priority:
+    description: Ordered topics preferred as a repository's heading when it matches no topic group.
+  language-limit:
+    description: Most languages listed per repository.
+    default: "5"
+  min-language-share:
+    description: Minimum share of a repository's bytes, as a percentage, for a language to be listed.
+    default: "5"
+  ignored-languages:
+    description: Languages never listed, as a YAML list or comma-separated.
+  language-aliases:
+    description: YAML map of language name to the name shown.
+  require:
+    description: Metadata every listed repository should have, from description and topics. Each repository lacking one produces a warning.
+    default: description, topics
+  fail-on-missing:
+    description: Fail the run when a listed repository lacks required metadata.
+    default: "false"
+  dry-run:
+    description: Print the generated index instead of writing files.
+    default: "false"
+
+outputs:
+  changed:
+    description: true when at least one file changed.
+    value: ${{ steps.index.outputs.changed }}
+  repos:
+    description: Number of repositories listed.
+    value: ${{ steps.index.outputs.repos }}
+  missing-description:
+    description: Number of listed repositories without a description.
+    value: ${{ steps.index.outputs.missing-description }}
+  missing-topics:
+    description: Number of listed repositories without topics.
+    value: ${{ steps.index.outputs.missing-topics }}
+
+runs:
+  using: composite
+  steps:
+    - id: app
+      if: inputs.app-id != ''
+      uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+      with:
+        app-id: ${{ inputs.app-id }}
+        private-key: ${{ inputs.app-private-key }}
+        owner: ${{ inputs.owner || github.repository_owner }}
+        permission-metadata: read
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: "26"
+    - id: install
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci --omit=dev --ignore-scripts
+    - id: index
+      shell: bash
+      run: node "${{ github.action_path }}/src/main.ts"
+      env:
+        INPUT_OWNER: ${{ inputs.owner }}
+        INPUT_TOKEN: ${{ inputs.token }}
+        INPUT_APP_ID: ${{ inputs.app-id }}
+        INPUT_APP_PRIVATE_KEY: ${{ inputs.app-private-key }}
+        INPUT_APP_TOKEN: ${{ steps.app.outputs.token }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_VISIBILITY: ${{ inputs.visibility }}
+        INPUT_PRIVATE_REPOS: ${{ inputs.private-repos }}
+        INPUT_INCLUDE_ARCHIVED: ${{ inputs.include-archived }}
+        INPUT_INCLUDE_FORKS: ${{ inputs.include-forks }}
+        INPUT_RULES: ${{ inputs.rules }}
+        INPUT_OUTPUT_PATHS: ${{ inputs.output-paths }}
+        INPUT_MARKER: ${{ inputs.marker }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_COLUMNS: ${{ inputs.columns }}
+        INPUT_SORT: ${{ inputs.sort }}
+        INPUT_UNGROUPED_LABEL: ${{ inputs.ungrouped-label }}
+        INPUT_GROUP_BY: ${{ inputs.group-by }}
+        INPUT_TOPIC_ALIASES: ${{ inputs.topic-aliases }}
+        INPUT_IGNORE_TOPICS: ${{ inputs.ignore-topics }}
+        INPUT_TOPIC_GROUPS: ${{ inputs.topic-groups }}
+        INPUT_MULTI_GROUP: ${{ inputs.multi-group }}
+        INPUT_TOPIC_PRIORITY: ${{ inputs.topic-priority }}
+        INPUT_LANGUAGE_LIMIT: ${{ inputs.language-limit }}
+        INPUT_MIN_LANGUAGE_SHARE: ${{ inputs.min-language-share }}
+        INPUT_IGNORED_LANGUAGES: ${{ inputs.ignored-languages }}
+        INPUT_LANGUAGE_ALIASES: ${{ inputs.language-aliases }}
+        INPUT_REQUIRE: ${{ inputs.require }}
+        INPUT_FAIL_ON_MISSING: ${{ inputs.fail-on-missing }}
+        INPUT_DRY_RUN: ${{ inputs.dry-run }}
