@@ -75,8 +75,8 @@ To include private repositories as well, add a credential (see [Credentials](#cr
 Exactly one of these, and the owner is read with metadata access only.
 
 - **Nothing.** The workflow's own token is used. It sees public repositories only, which is all a public profile README needs.
-- **`token`**: a fine-grained personal access token with read-only Metadata on the owner's repositories.
-- **`app-id` and `app-private-key`**: a GitHub App with read-only Metadata, installed on the owner. An installation token is minted for `owner`. Create the App under Settings, Developer settings, GitHub Apps (see [GitHub's guide](https://docs.github.com/en/apps/creating-github-apps)), install it on the owner, and store its id and private key as repository secrets.
+- **`token`**: a fine-grained personal access token with read-only Metadata and Contents on the owner's repositories.
+- **`app-id` and `app-private-key`**: a GitHub App with read-only Metadata and Contents, installed on the owner. An installation token is minted for `owner`. Create the App under Settings, Developer settings, GitHub Apps (see [GitHub's guide](https://docs.github.com/en/apps/creating-github-apps)), install it on the owner, and store its id and private key as repository secrets.
 
 ## Public output
 

@@ -9,9 +9,9 @@ inputs:
   owner:
     description: User or organisation whose repositories are indexed. Defaults to the owner of the repository running the workflow.
   token:
-    description: A fine-grained personal access token with read-only Metadata access. Give at most one of token and app-id. With neither, the workflow's own token is used, which sees public repositories only.
+    description: A fine-grained personal access token with read-only Metadata and Contents access (Contents is needed to count commits for the activity sort). Give at most one of token and app-id. With neither, the workflow's own token is used, which sees public repositories only.
   app-id:
-    description: A GitHub App's id; an installation token is minted for owner. Needs app-private-key.
+    description: A GitHub App's id; an installation token is minted for owner, limited to read-only Metadata and Contents. Needs app-private-key.
   app-private-key:
     description: The private key of the GitHub App named by app-id.
   github-token:
@@ -111,6 +111,7 @@ runs:
         private-key: ${{ inputs.app-private-key }}
         owner: ${{ inputs.owner || github.repository_owner }}
         permission-metadata: read
+        permission-contents: read
     - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
         node-version: "26"
