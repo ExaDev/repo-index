@@ -1,3 +1,9 @@
+## [1.1.1](https://github.com/ExaDev/repo-index/compare/v1.1.0...v1.1.1) (2026-11-21)
+
+### Bug Fixes
+
+- request read-only Contents on the App token for the activity sort ([4b22361](https://github.com/ExaDev/repo-index/commit/4b22361594f4d977a7f39d52fbe2f5b03f237941))
+
 ## [1.1.0](https://github.com/ExaDev/repo-index/compare/v1.0.1...v1.1.0) (2026-11-21)
 
 ### Features
