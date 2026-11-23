@@ -41,8 +41,8 @@ inputs:
     description: table or list.
     default: table
   columns:
-    description: Table columns in order, from name, description, languages, related, stars, updated and visibility.
-    default: name, description, languages, related
+    description: Table columns in order, from name, description, languages, topics, related, stars, updated and visibility.
+    default: name, description, languages, topics, related
   relations:
     description: Which relationships between the listed repositories the related column shows, from depends-on (the dependency graph, resolved to repositories), fork-of, template and mentions (the README names another listed repository as owner/name or by URL), or none. A relationship is shown only when both repositories are listed, so a public index never shows one to a private repository.
     default: depends-on, fork-of, template, mentions
@@ -62,8 +62,8 @@ inputs:
     description: Heading for repositories that fall in no group.
     default: Ungrouped
   group-by:
-    description: topic, language or none.
-    default: topic
+    description: activity (by the shortest window with a commit on the default branch, from the last 7 days to older than a year), topic, language or none. With activity the topics are a column instead.
+    default: activity
   topic-aliases:
     description: YAML map of variant topic to canonical topic, applied first and case-insensitively.
   ignore-topics:

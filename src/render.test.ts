@@ -11,6 +11,7 @@ const options: RenderOptions = {
   sort: "name",
   halfLifeDays: 30,
   relations: { related: new Map(), named: new Map(), limit: 6 },
+  topicsOf: (r) => r.topics,
   languages: { limit: 5, minShare: 5, ignored: new Set(), aliases: new Map() },
   countedPrivate: 0,
 };
@@ -154,4 +155,18 @@ test("a repository with no relationships has an empty related cell", () => {
     columns: ["name", "related"],
   });
   assert.match(out, /\| \[a\]\(https:\/\/github.com\/acme\/a\) \| {2}\|/);
+});
+
+test("the topics column shows each topic in code style", () => {
+  const out = renderIndex(
+    [{ label: "x", repos: [repo("a", { topics: ["cli", "typescript"] })] }],
+    {
+      ...options,
+      columns: ["name", "topics"],
+    },
+  );
+  assert.match(
+    out,
+    /\| \[a\]\(https:\/\/github.com\/acme\/a\) \| `cli` `typescript` \|/,
+  );
 });

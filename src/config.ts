@@ -73,7 +73,7 @@ export const Config = z.object({
   relationsLimit: z.coerce.number().int().min(1),
   leakPolicy: z.enum(["fail", "warn", "off"]),
   ungroupedLabel: z.string().min(1),
-  groupBy: z.enum(["topic", "language", "none"]),
+  groupBy: z.enum(["activity", "topic", "language", "none"]),
   multiGroup: bool,
   languageLimit: z.coerce.number().int().min(1),
   minLanguageShare: z.coerce.number().min(0).max(PERCENT),
@@ -155,7 +155,10 @@ export function readSettings(): Settings {
     marker: firstNonEmpty(env("marker"), "repo-index"),
     format: firstNonEmpty(env("format"), "table"),
     columns: list(
-      firstNonEmpty(env("columns"), "name, description, languages, related"),
+      firstNonEmpty(
+        env("columns"),
+        "name, description, languages, topics, related",
+      ),
     ),
     relations: list(
       firstNonEmpty(env("relations"), RELATION_KINDS.join(", ")),
@@ -168,7 +171,7 @@ export function readSettings(): Settings {
       String(DEFAULT_HALF_LIFE_DAYS),
     ),
     ungroupedLabel: firstNonEmpty(env("ungrouped-label"), "Ungrouped"),
-    groupBy: firstNonEmpty(env("group-by"), "topic"),
+    groupBy: firstNonEmpty(env("group-by"), "activity"),
     multiGroup: firstNonEmpty(env("multi-group"), "false"),
     languageLimit: firstNonEmpty(env("language-limit"), "5"),
     minLanguageShare: firstNonEmpty(env("min-language-share"), "5"),

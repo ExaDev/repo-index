@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { repo } from "./fixtures.ts";
 import { groupRepos, normaliseTopics, unusedTopicSettings } from "./topics.ts";
 import type { GroupingOptions } from "./topics.ts";
+import type { Repo } from "./types.ts";
 
 const base: GroupingOptions = {
   groupBy: "topic",
@@ -156,4 +157,30 @@ test("settings naming a topic no repository carries are reported", () => {
     "ignore-topics: hacktoberfest",
     "topic-groups Web: react",
   ]);
+});
+
+test("group-by activity uses the shortest window with a commit, in order, skipping empty windows", () => {
+  const at = (name: string, c: Partial<Repo["commits"]>): Repo =>
+    repo(name, {
+      commits: { last7: 0, last30: 0, last90: 0, last365: 0, ...c },
+    });
+  const groups = groupRepos(
+    [
+      at("old", {}),
+      at("year", { last365: 3 }),
+      at("week", { last7: 1, last30: 1, last90: 1, last365: 1 }),
+      at("quarter", { last90: 2, last365: 2 }),
+    ],
+    { ...base, groupBy: "activity" },
+  );
+  assert.deepEqual(labels(groups), [
+    "Last 7 days",
+    "Last 90 days",
+    "Last year",
+    "Older",
+  ]);
+  assert.deepEqual(
+    groups.map((g) => g.repos.map((r) => r.name)),
+    [["week"], ["quarter"], ["year"], ["old"]],
+  );
 });
