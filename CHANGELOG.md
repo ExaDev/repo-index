@@ -1,3 +1,9 @@
+## [1.3.2](https://github.com/ExaDev/repo-index/compare/v1.3.1...v1.3.2) (2026-11-23)
+
+### Bug Fixes
+
+- skip dependencies whose repository GitHub forbids the token to see ([9d13d96](https://github.com/ExaDev/repo-index/commit/9d13d96e4df53231eca667bd2cffe875aa83c576))
+
 ## [1.3.1](https://github.com/ExaDev/repo-index/compare/v1.3.0...v1.3.1) (2026-11-23)
 
 ### Bug Fixes
