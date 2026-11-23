@@ -1,3 +1,9 @@
+## [1.1.2](https://github.com/ExaDev/repo-index/compare/v1.1.1...v1.1.2) (2026-11-23)
+
+### Build System
+
+- **deps:** bump the npm_and_yarn group across 1 directory with 3 updates ([6fe89cf](https://github.com/ExaDev/repo-index/commit/6fe89cfc95c5b95606d56fcfc87e4329c4a73788))
+
 ## [1.1.1](https://github.com/ExaDev/repo-index/compare/v1.1.0...v1.1.1) (2026-11-21)
 
 ### Bug Fixes
