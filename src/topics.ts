@@ -1,7 +1,7 @@
 import type { Group, Repo } from "./types.ts";
 
 export interface GroupingOptions {
-  readonly groupBy: "topic" | "language" | "none";
+  readonly groupBy: "activity" | "topic" | "language" | "none";
   readonly topicAliases: ReadonlyMap<string, string>;
   readonly ignoreTopics: ReadonlySet<string>;
   readonly topicGroups: ReadonlyMap<string, readonly string[]>;
@@ -11,6 +11,25 @@ export interface GroupingOptions {
   readonly ungroupedLabel: string;
   /** When given, headings that are not named topic groups are ordered by this score of their repositories, highest first, instead of alphabetically. */
   readonly groupScore?: (repos: readonly Repo[]) => number;
+}
+
+/** Headings for activity grouping, most recently active first. Each repository goes under the first window in which it has any commit on its default branch. */
+export const ACTIVITY_BUCKETS = [
+  "Last 7 days",
+  "Last 30 days",
+  "Last 90 days",
+  "Last year",
+  "Older",
+] as const;
+
+/** The heading of the shortest window in which the repository has a commit, or the last heading when it has none in the past year. */
+export function activityBucket(repo: Repo): (typeof ACTIVITY_BUCKETS)[number] {
+  const { last7, last30, last90, last365 } = repo.commits;
+  if (last7 > 0) return "Last 7 days";
+  if (last30 > 0) return "Last 30 days";
+  if (last90 > 0) return "Last 90 days";
+  if (last365 > 0) return "Last year";
+  return "Older";
 }
 
 /** Applies aliases (case-insensitive) then drops ignored topics, de-duplicating the result. */
@@ -42,6 +61,12 @@ export function groupRepos(
   options: GroupingOptions,
 ): Group[] {
   if (options.groupBy === "none") return [{ label: "", repos }];
+  if (options.groupBy === "activity") {
+    return ACTIVITY_BUCKETS.map((label) => ({
+      label,
+      repos: repos.filter((repo) => activityBucket(repo) === label),
+    })).filter((group) => group.repos.length > 0);
+  }
 
   const buckets = new Map<string, Repo[]>();
   const add = (label: string, repo: Repo): void => {

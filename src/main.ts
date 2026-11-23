@@ -13,7 +13,7 @@ import {
 import { compileRules } from "./rules.ts";
 import { renderIndex } from "./render.ts";
 import { resolveTargets, writeRegion } from "./region.ts";
-import { groupRepos, unusedTopicSettings } from "./topics.ts";
+import { groupRepos, normaliseTopics, unusedTopicSettings } from "./topics.ts";
 import type { RawRelations, Repo, Treatment } from "./types.ts";
 
 export interface Selection {
@@ -146,6 +146,7 @@ export async function run(): Promise<void> {
       ignored: settings.ignoredLanguages,
       aliases: settings.languageAliases,
     },
+    topicsOf: (repo) => normaliseTopics(repo.topics, settings),
     countedPrivate,
     relations: {
       related: relatedByRepo(edges),

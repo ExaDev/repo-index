@@ -9,6 +9,7 @@ export const COLUMNS = [
   "name",
   "description",
   "languages",
+  "topics",
   "related",
   "stars",
   "updated",
@@ -26,6 +27,8 @@ export interface RenderOptions {
   /** Number of repositories counted but not named. */
   readonly countedPrivate: number;
   readonly relations: RelationsRender;
+  /** The topics to show for a repository, after aliases and ignores. */
+  readonly topicsOf: (repo: Repo) => readonly string[];
 }
 
 export interface RelationsRender {
@@ -93,6 +96,11 @@ function columnValue(
       return cell(repo.description ?? NO_DESCRIPTION);
     case "languages":
       return languagesText(repo, options);
+    case "topics":
+      return options
+        .topicsOf(repo)
+        .map((topic) => `\`${topic}\``)
+        .join(" ");
     case "related":
       return relatedText(repo, options);
     case "stars":
