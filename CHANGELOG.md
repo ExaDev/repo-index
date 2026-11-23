@@ -1,3 +1,13 @@
+## [1.4.0](https://github.com/ExaDev/repo-index/compare/v1.3.2...v1.4.0) (2026-11-23)
+
+### Features
+
+- log-scale commit volume in the activity score ([40e7e6a](https://github.com/ExaDev/repo-index/commit/40e7e6a7eeff8b0d8c44cda585eaf2c09273697e))
+
+### Bug Fixes
+
+- retry empty or truncated GraphQL responses ([34278e4](https://github.com/ExaDev/repo-index/commit/34278e4c9528bc25c5f9b90e85db3d22a1c46b31))
+
 ## [1.3.2](https://github.com/ExaDev/repo-index/compare/v1.3.1...v1.3.2) (2026-11-23)
 
 ### Bug Fixes
