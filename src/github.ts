@@ -118,8 +118,14 @@ export function toRepo(node: z.infer<typeof RepoNode>): Repo {
 }
 
 /** Attempts per request, and the pause before a retry in milliseconds, which grows with each attempt. GitHub answers an expensive query with a 502 or 504 that a smaller or repeated request often clears. */
-const ATTEMPTS = 3;
+const ATTEMPTS = 4;
 const RETRY_PAUSE_MS = 3000;
+
+/** The pause before a retry, in milliseconds. `REPO_INDEX_RETRY_PAUSE_MS` shortens it for tests. */
+function retryPause(attempt: number): number {
+  const configured = Number(process.env.REPO_INDEX_RETRY_PAUSE_MS);
+  return (Number.isNaN(configured) ? RETRY_PAUSE_MS : configured) * attempt;
+}
 /** Status codes that a repeated request can clear: the server errors from 500 up to and including 504. */
 const FIRST_SERVER_ERROR = 500;
 const LAST_RETRYABLE_ERROR = 504;
@@ -130,11 +136,20 @@ async function pause(milliseconds: number): Promise<void> {
   });
 }
 
-function isRetryable(response: Response): boolean {
+/** GitHub reports an overloaded query as `Something went wrong while executing your query` inside a 200 response, which a repeated request usually clears. */
+const TRANSIENT_GRAPHQL_ERROR =
+  /something went wrong while executing your query/i;
+
+function isRetryableStatus(status: number): boolean {
+  return status >= FIRST_SERVER_ERROR && status <= LAST_RETRYABLE_ERROR;
+}
+
+function hasTransientError(json: unknown): boolean {
   return (
-    !response.ok &&
-    response.status >= FIRST_SERVER_ERROR &&
-    response.status <= LAST_RETRYABLE_ERROR
+    typeof json === "object" &&
+    json !== null &&
+    "errors" in json &&
+    TRANSIENT_GRAPHQL_ERROR.test(JSON.stringify(json.errors))
   );
 }
 
@@ -150,27 +165,32 @@ async function post(token: string, body: unknown): Promise<unknown> {
       },
       body: JSON.stringify(body),
     });
-  let response = await send();
-  for (
-    let attempt = 1;
-    attempt < ATTEMPTS && isRetryable(response);
-    attempt += 1
-  ) {
-    await pause(RETRY_PAUSE_MS * attempt);
-    response = await send();
+  let attempt = 1;
+  for (;;) {
+    const response = await send();
+    if (!response.ok) {
+      if (isRetryableStatus(response.status) && attempt < ATTEMPTS) {
+        await pause(retryPause(attempt));
+        attempt += 1;
+        continue;
+      }
+      throw new Error(
+        `GitHub GraphQL request failed: ${String(response.status)} ${response.statusText}`,
+      );
+    }
+    const json: unknown = await response.json();
+    if (hasTransientError(json) && attempt < ATTEMPTS) {
+      await pause(retryPause(attempt));
+      attempt += 1;
+      continue;
+    }
+    if (typeof json === "object" && json !== null && "errors" in json) {
+      throw new Error(
+        `GitHub GraphQL returned errors: ${JSON.stringify(json.errors)}`,
+      );
+    }
+    return json;
   }
-  if (!response.ok) {
-    throw new Error(
-      `GitHub GraphQL request failed: ${String(response.status)} ${response.statusText}`,
-    );
-  }
-  const json: unknown = await response.json();
-  if (typeof json === "object" && json !== null && "errors" in json) {
-    throw new Error(
-      `GitHub GraphQL returned errors: ${JSON.stringify(json.errors)}`,
-    );
-  }
-  return json;
 }
 
 /** Every repository the owner holds that the token can see, paginated, with the response validated. */
