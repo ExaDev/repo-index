@@ -1,3 +1,9 @@
+## [1.3.0](https://github.com/ExaDev/repo-index/compare/v1.2.0...v1.3.0) (2026-11-23)
+
+### Features
+
+- group by activity by default and show topics in a column ([1966f08](https://github.com/ExaDev/repo-index/commit/1966f0801573dcad85d1e8487e8f3bab5855b0f7))
+
 ## [1.2.0](https://github.com/ExaDev/repo-index/compare/v1.1.3...v1.2.0) (2026-11-23)
 
 ### Features
