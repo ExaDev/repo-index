@@ -82,3 +82,48 @@ test("window counts that shrink are clamped, never scored negatively", () => {
   });
   assert.ok(activityScore(odd, HALF_LIFE) >= 0);
 });
+
+const BIG_OLD_PILE = 500;
+const BIG_RECENT_BURST = 200;
+
+test("a large old pile of commits does not outrank one commit from yesterday", () => {
+  const oldPile = repo("old", {
+    commits: windows({ last365: BIG_OLD_PILE }),
+  });
+  const yesterday = repo("new", {
+    commits: windows({ last7: 1, last30: 1, last90: 1, last365: 1 }),
+  });
+  assert.ok(
+    activityScore(yesterday, HALF_LIFE) > activityScore(oldPile, HALF_LIFE),
+  );
+});
+
+test("a large recent burst still outranks one commit from yesterday", () => {
+  const burst = repo("burst", {
+    commits: windows({
+      last30: BIG_RECENT_BURST,
+      last90: BIG_RECENT_BURST,
+      last365: BIG_RECENT_BURST,
+    }),
+  });
+  const yesterday = repo("new", {
+    commits: windows({ last7: 1, last30: 1, last90: 1, last365: 1 }),
+  });
+  assert.ok(
+    activityScore(burst, HALF_LIFE) > activityScore(yesterday, HALF_LIFE),
+  );
+});
+
+test("each extra commit in a bucket adds less than the one before", () => {
+  const score = (n: number): number =>
+    activityScore(
+      repo("a", {
+        commits: windows({ last7: n, last30: n, last90: n, last365: n }),
+      }),
+      HALF_LIFE,
+    );
+  const ONE = 1;
+  const TWO = 2;
+  const THREE = 3;
+  assert.ok(score(TWO) - score(ONE) > score(THREE) - score(TWO));
+});
