@@ -2,13 +2,19 @@ import { appendFileSync } from "node:fs";
 import { activityScore } from "./activity.ts";
 import { assertCredentialSeesPrivate, readSettings } from "./config.ts";
 import type { Settings } from "./config.ts";
-import { fetchRepos, isRepositoryPrivate } from "./github.ts";
+import { fetchRelations, fetchRepos, isRepositoryPrivate } from "./github.ts";
 import { findMissing, summaryTable, warning } from "./hygiene.ts";
+import {
+  buildEdges,
+  findLeaks,
+  relatedByRepo,
+  slugIndex,
+} from "./relations.ts";
 import { compileRules } from "./rules.ts";
 import { renderIndex } from "./render.ts";
 import { resolveTargets, writeRegion } from "./region.ts";
 import { groupRepos, unusedTopicSettings } from "./topics.ts";
-import type { Repo, Treatment } from "./types.ts";
+import type { RawRelations, Repo, Treatment } from "./types.ts";
 
 export interface Selection {
   readonly included: Repo[];
@@ -80,6 +86,36 @@ export async function run(): Promise<void> {
       : await isRepositoryPrivate(settings.token, target),
   );
 
+  const everyRepo = slugIndex(repos);
+  const privateSlugs = new Set(
+    repos.filter((r) => r.isPrivate).map((r) => r.nameWithOwner),
+  );
+  const wantsRelated =
+    config.columns.includes("related") && config.relations.length > 0;
+  const checksLeaks = config.leakPolicy !== "off" && privateSlugs.size > 0;
+  const raw: ReadonlyMap<string, RawRelations> =
+    wantsRelated || checksLeaks
+      ? await fetchRelations(settings.token, included, everyRepo)
+      : new Map();
+
+  const leaks = checksLeaks
+    ? findLeaks(included, raw, everyRepo, (slug) => privateSlugs.has(slug))
+    : [];
+  for (const leak of leaks) {
+    console.log(
+      `${config.leakPolicy === "fail" ? "::error::" : "::warning::"}${leak.from} refers to the private repository ${leak.to} (${leak.where})`,
+    );
+  }
+  setOutput("leaks", String(leaks.length));
+  if (leaks.length > 0 && config.leakPolicy === "fail") {
+    throw new Error(
+      `${String(leaks.length)} public repositories refer to private ones; fix them, or set leak-policy: warn.`,
+    );
+  }
+  const edges = wantsRelated
+    ? buildEdges(included, raw, new Set(config.relations))
+    : [];
+
   const groups = groupRepos(included, {
     groupBy: config.groupBy,
     topicAliases: settings.topicAliases,
@@ -111,6 +147,11 @@ export async function run(): Promise<void> {
       aliases: settings.languageAliases,
     },
     countedPrivate,
+    relations: {
+      related: relatedByRepo(edges),
+      named: new Map(included.map((r) => [r.nameWithOwner, r])),
+      limit: config.relationsLimit,
+    },
   });
 
   const missing = findMissing(included, config.require);

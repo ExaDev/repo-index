@@ -41,8 +41,17 @@ inputs:
     description: table or list.
     default: table
   columns:
-    description: Table columns in order, from name, description, languages, stars, updated and visibility.
-    default: name, description, languages
+    description: Table columns in order, from name, description, languages, related, stars, updated and visibility.
+    default: name, description, languages, related
+  relations:
+    description: Which relationships between the listed repositories the related column shows, from depends-on (the dependency graph, resolved to repositories), fork-of, template and mentions (the README names another listed repository as owner/name or by URL), or none. A relationship is shown only when both repositories are listed, so a public index never shows one to a private repository.
+    default: depends-on, fork-of, template, mentions
+  relations-limit:
+    description: Most repositories listed per kind of relationship before +N.
+    default: "6"
+  leak-policy:
+    description: What to do when a public repository refers to a private one (in its description, topics, README, dependencies, fork parent or template), which needs a credential that can see private repositories. fail stops before anything is written, warn annotates, off skips the check.
+    default: fail
   sort:
     description: activity, name, updated or stars. activity ranks by recent commits on the default branch, with each commit's weight halving every activity-half-life days, so the most recently busy repositories come first and the list tails off as work goes quiet.
     default: activity
@@ -99,6 +108,9 @@ outputs:
   missing-topics:
     description: Number of listed repositories without topics.
     value: ${{ steps.index.outputs.missing-topics }}
+  leaks:
+    description: Number of places where a public repository refers to a private one.
+    value: ${{ steps.index.outputs.leaks }}
 
 runs:
   using: composite
@@ -139,6 +151,9 @@ runs:
         INPUT_FORMAT: ${{ inputs.format }}
         INPUT_COLUMNS: ${{ inputs.columns }}
         INPUT_SORT: ${{ inputs.sort }}
+        INPUT_RELATIONS: ${{ inputs.relations }}
+        INPUT_RELATIONS_LIMIT: ${{ inputs.relations-limit }}
+        INPUT_LEAK_POLICY: ${{ inputs.leak-policy }}
         INPUT_ACTIVITY_HALF_LIFE: ${{ inputs.activity-half-life }}
         INPUT_UNGROUPED_LABEL: ${{ inputs.ungrouped-label }}
         INPUT_GROUP_BY: ${{ inputs.group-by }}

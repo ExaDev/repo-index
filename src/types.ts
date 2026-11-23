@@ -28,6 +28,25 @@ export interface Repo {
   readonly commits: CommitWindows;
 }
 
+export type RelationKind = "depends-on" | "fork-of" | "template" | "mentions";
+
+/** A directed relationship from one repository to another, both as `owner/name`. */
+export interface Edge {
+  readonly from: string;
+  readonly to: string;
+  readonly kind: RelationKind;
+}
+
+/** What GitHub reports about one repository's links to other repositories, before any filtering. Entries are `owner/name`. */
+export interface RawRelations {
+  readonly parent: string | null;
+  readonly template: string | null;
+  /** Repositories that the dependency graph resolves this one's dependencies to. */
+  readonly dependencies: readonly string[];
+  /** Known repositories that the README names as `owner/name` or by URL. */
+  readonly mentions: readonly string[];
+}
+
 export type Treatment = "include" | "count" | "exclude";
 
 export interface Group {

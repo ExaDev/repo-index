@@ -1,12 +1,15 @@
 import { compareByActivity } from "./activity.ts";
 import { languageCounts, visibleLanguages } from "./languages.ts";
 import type { LanguageOptions } from "./languages.ts";
+import { relatedOf } from "./relations.ts";
+import type { Related } from "./relations.ts";
 import type { Group, Repo } from "./types.ts";
 
 export const COLUMNS = [
   "name",
   "description",
   "languages",
+  "related",
   "stars",
   "updated",
   "visibility",
@@ -22,6 +25,16 @@ export interface RenderOptions {
   readonly languages: LanguageOptions;
   /** Number of repositories counted but not named. */
   readonly countedPrivate: number;
+  readonly relations: RelationsRender;
+}
+
+export interface RelationsRender {
+  /** Every named repository's relationships, which only ever join repositories that are named in this output. */
+  readonly related: ReadonlyMap<string, Related>;
+  /** The repositories named in this output, by `owner/name`. */
+  readonly named: ReadonlyMap<string, Repo>;
+  /** Most repositories listed per kind of relationship before "+N". */
+  readonly limit: number;
 }
 
 /** Length of the `YYYY-MM-DD` prefix of an ISO timestamp. */
@@ -43,6 +56,31 @@ function assertNever(value: never): never {
   throw new Error(`Unhandled column: ${String(value)}`);
 }
 
+function relatedText(repo: Repo, options: RenderOptions): string {
+  const { related, named, limit } = options.relations;
+  const entry = relatedOf(related, repo.nameWithOwner);
+  const link = (slug: string): string => {
+    const other = named.get(slug);
+    return other === undefined ? slug : `[${other.name}](${other.url})`;
+  };
+  const parts: string[] = [];
+  const add = (label: string, slugs: readonly string[]): void => {
+    if (slugs.length === 0) return;
+    const more = slugs.length - limit;
+    parts.push(
+      `**${label}** ${slugs.slice(0, limit).map(link).join(", ")}${more > 0 ? ` +${String(more)}` : ""}`,
+    );
+  };
+  add("Fork of", entry.forkOf);
+  add("From template", entry.template);
+  add("Depends on", entry.dependsOn);
+  add("Used by", entry.usedBy);
+  add("Forks", entry.forkedBy);
+  add("Template for", entry.templateFor);
+  add("See also", entry.seeAlso);
+  return parts.join("<br>");
+}
+
 function columnValue(
   column: Column,
   repo: Repo,
@@ -55,6 +93,8 @@ function columnValue(
       return cell(repo.description ?? NO_DESCRIPTION);
     case "languages":
       return languagesText(repo, options);
+    case "related":
+      return relatedText(repo, options);
     case "stars":
       return String(repo.stars);
     case "updated":
@@ -96,7 +136,10 @@ function renderGroup(group: Group, options: RenderOptions): string {
       ...repos.map((repo) => {
         const languages = languagesText(repo, options);
         const description = repo.description ?? NO_DESCRIPTION;
-        return `- [${repo.name}](${repo.url}): ${description.replace(/\r?\n/g, " ")}${languages === "" ? "" : ` (${languages})`}`;
+        const related = options.columns.includes("related")
+          ? relatedText(repo, options).replaceAll("<br>", "; ")
+          : "";
+        return `- [${repo.name}](${repo.url}): ${description.replace(/\r?\n/g, " ")}${languages === "" ? "" : ` (${languages})`}${related === "" ? "" : `. ${related}`}`;
       }),
     ].join("\n");
   }
