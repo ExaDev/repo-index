@@ -146,3 +146,29 @@ test("a forbidden error anywhere else still fails the run", async () => {
     /returned errors/,
   );
 });
+
+function respondText(...bodies: readonly string[]): { calls: () => number } {
+  let call = 0;
+  globalThis.fetch = async (): Promise<Response> => {
+    const next = bodies[Math.min(call, bodies.length - 1)] ?? "";
+    call += 1;
+    return Promise.resolve(new Response(next, { status: 200 }));
+  };
+  return { calls: () => call };
+}
+
+test("an empty body is retried and the later page is used", async () => {
+  const seen = respondText("", JSON.stringify(EMPTY_PAGE));
+  const repos = await fetchRepos("t", "acme", null, new Date());
+  assert.deepEqual(repos, []);
+  assert.equal(seen.calls(), 2);
+});
+
+test("a body that never becomes valid fails after the attempts", async () => {
+  const seen = respondText("{");
+  await assert.rejects(
+    async () => fetchRepos("t", "acme", null, new Date()),
+    /empty or invalid response/,
+  );
+  assert.equal(seen.calls(), ATTEMPTS);
+});

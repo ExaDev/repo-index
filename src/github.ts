@@ -172,6 +172,16 @@ function isHiddenDependencyRepository(error: unknown): boolean {
   );
 }
 
+/** The parsed body, or undefined when GitHub sent an empty or truncated one, which a repeated request usually clears. */
+function parseJson(text: string): unknown {
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
 async function post(
   token: string,
   body: unknown,
@@ -201,11 +211,15 @@ async function post(
         `GitHub GraphQL request failed: ${String(response.status)} ${response.statusText}`,
       );
     }
-    const json: unknown = await response.json();
-    if (hasTransientError(json) && attempt < ATTEMPTS) {
+    const text = await response.text();
+    const json = parseJson(text);
+    if ((json === undefined || hasTransientError(json)) && attempt < ATTEMPTS) {
       await pause(retryPause(attempt));
       attempt += 1;
       continue;
+    }
+    if (json === undefined) {
+      throw new Error("GitHub GraphQL returned an empty or invalid response.");
     }
     if (typeof json === "object" && json !== null && "errors" in json) {
       const errors: unknown = json.errors;
