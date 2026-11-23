@@ -1,3 +1,9 @@
+## [1.3.1](https://github.com/ExaDev/repo-index/compare/v1.3.0...v1.3.1) (2026-11-23)
+
+### Bug Fixes
+
+- retry GitHub's transient query errors, not only server error statuses ([8039c63](https://github.com/ExaDev/repo-index/commit/8039c63955fb20caaa60b581d775b9eed726a0f6))
+
 ## [1.3.0](https://github.com/ExaDev/repo-index/compare/v1.2.0...v1.3.0) (2026-11-23)
 
 ### Features
