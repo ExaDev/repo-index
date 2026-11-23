@@ -3,6 +3,7 @@ import * as z from "zod";
 import { parse } from "yaml";
 import { DEFAULT_HALF_LIFE_DAYS } from "./activity.ts";
 import { PERCENT } from "./languages.ts";
+import { RELATION_KINDS } from "./relations.ts";
 import { COLUMNS } from "./render.ts";
 import { RulesSchema } from "./rules.ts";
 
@@ -68,6 +69,9 @@ export const Config = z.object({
   columns: z.array(z.enum(COLUMNS)).min(1),
   sort: z.enum(["activity", "name", "updated", "stars"]),
   activityHalfLife: z.coerce.number().positive(),
+  relations: z.array(z.enum(RELATION_KINDS)),
+  relationsLimit: z.coerce.number().int().min(1),
+  leakPolicy: z.enum(["fail", "warn", "off"]),
   ungroupedLabel: z.string().min(1),
   groupBy: z.enum(["topic", "language", "none"]),
   multiGroup: bool,
@@ -151,8 +155,13 @@ export function readSettings(): Settings {
     marker: firstNonEmpty(env("marker"), "repo-index"),
     format: firstNonEmpty(env("format"), "table"),
     columns: list(
-      firstNonEmpty(env("columns"), "name, description, languages"),
+      firstNonEmpty(env("columns"), "name, description, languages, related"),
     ),
+    relations: list(
+      firstNonEmpty(env("relations"), RELATION_KINDS.join(", ")),
+    ).filter((kind) => kind !== "none"),
+    relationsLimit: firstNonEmpty(env("relations-limit"), "6"),
+    leakPolicy: firstNonEmpty(env("leak-policy"), "fail"),
     sort: firstNonEmpty(env("sort"), "activity"),
     activityHalfLife: firstNonEmpty(
       env("activity-half-life"),
