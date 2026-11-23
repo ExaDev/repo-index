@@ -153,7 +153,30 @@ function hasTransientError(json: unknown): boolean {
   );
 }
 
-async function post(token: string, body: unknown): Promise<unknown> {
+/**
+ * Whether a GraphQL error only says that one dependency's repository cannot be shown: GitHub answers FORBIDDEN, with the rest of the response intact, when that repository's organisation restricts access by IP address or SAML. A repository the token cannot see cannot be listed, so the dependency is simply not a relationship.
+ */
+const GraphqlError = z.object({
+  type: z.string().optional(),
+  path: z.array(z.union([z.string(), z.number()])).optional(),
+});
+
+function isHiddenDependencyRepository(error: unknown): boolean {
+  const parsed = GraphqlError.safeParse(error);
+  if (!parsed.success) return false;
+  const { type, path } = parsed.data;
+  return (
+    type === "FORBIDDEN" &&
+    path?.at(-1) === "repository" &&
+    path.includes("dependencies")
+  );
+}
+
+async function post(
+  token: string,
+  body: unknown,
+  tolerateErrors: (error: unknown) => boolean = () => false,
+): Promise<unknown> {
   const url =
     process.env.GITHUB_GRAPHQL_URL ?? "https://api.github.com/graphql";
   const send = async (): Promise<Response> =>
@@ -185,9 +208,12 @@ async function post(token: string, body: unknown): Promise<unknown> {
       continue;
     }
     if (typeof json === "object" && json !== null && "errors" in json) {
-      throw new Error(
-        `GitHub GraphQL returned errors: ${JSON.stringify(json.errors)}`,
-      );
+      const errors: unknown = json.errors;
+      if (!Array.isArray(errors) || !errors.every(tolerateErrors)) {
+        throw new Error(
+          `GitHub GraphQL returned errors: ${JSON.stringify(errors)}`,
+        );
+      }
     }
     return json;
   }
@@ -391,7 +417,13 @@ async function fetchDependencies(token: string, repo: Repo): Promise<string[]> {
     });
     const json = z
       .object({ data: z.record(z.string(), DependenciesNode) })
-      .parse(await post(token, { query: `query { ${fields.join(" ")} }` }));
+      .parse(
+        await post(
+          token,
+          { query: `query { ${fields.join(" ")} }` },
+          isHiddenDependencyRepository,
+        ),
+      );
     const more: { id: string; cursor: string | null }[] = [];
     chunk.forEach((m, index) => {
       const dependencies = json.data[`m${String(index)}`]?.dependencies;

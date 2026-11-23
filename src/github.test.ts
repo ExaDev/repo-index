@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import { fetchRepos } from "./github.ts";
+import { fetchRelations, fetchRepos } from "./github.ts";
+import { repo } from "./fixtures.ts";
+import { slugIndex } from "./relations.ts";
 
 const BAD_GATEWAY = 502;
 const ATTEMPTS = 4;
@@ -76,4 +78,71 @@ test("a transient error that never clears fails after the attempts", async () =>
     /returned errors/,
   );
   assert.equal(seen.calls(), ATTEMPTS);
+});
+
+const LINKS = {
+  data: { r0: { parent: null, templateRepository: null, readme: null } },
+};
+const MANIFESTS = {
+  data: {
+    repository: {
+      dependencyGraphManifests: {
+        pageInfo: { hasNextPage: false, endCursor: null },
+        nodes: [{ id: "M1", filename: "package.json" }],
+      },
+    },
+  },
+};
+
+function dependencies(
+  nodes: readonly object[],
+  errors?: readonly object[],
+): object {
+  return {
+    data: {
+      m0: {
+        dependencies: {
+          pageInfo: { hasNextPage: false, endCursor: null },
+          nodes,
+        },
+      },
+    },
+    ...(errors === undefined ? {} : { errors }),
+  };
+}
+
+const target = repo("a");
+
+test("a dependency whose repository GitHub forbids is skipped, the others are kept", async () => {
+  respond(
+    LINKS,
+    MANIFESTS,
+    dependencies(
+      [{ repository: { nameWithOwner: "acme/b" } }, { repository: null }],
+      [
+        {
+          type: "FORBIDDEN",
+          path: ["m0", "dependencies", "nodes", 1, "repository"],
+          message: "IP allow list",
+        },
+      ],
+    ),
+  );
+  const raw = await fetchRelations("t", [target], slugIndex([target]));
+  assert.deepEqual(raw.get("acme/a")?.dependencies, ["acme/b"]);
+});
+
+test("a forbidden error anywhere else still fails the run", async () => {
+  respond(
+    LINKS,
+    MANIFESTS,
+    dependencies(
+      [],
+      [{ type: "FORBIDDEN", path: ["m0"], message: "no access" }],
+    ),
+  );
+  await assert.rejects(
+    async () => fetchRelations("t", [target], slugIndex([target])),
+    /returned errors/,
+  );
 });
