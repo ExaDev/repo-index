@@ -1,3 +1,9 @@
+## [1.1.3](https://github.com/ExaDev/repo-index/compare/v1.1.2...v1.1.3) (2026-11-23)
+
+### Build System
+
+- **deps:** update dev dependencies to patched versions ([5d00bd8](https://github.com/ExaDev/repo-index/commit/5d00bd802cd5b6e39425d2ddd8fafdeee089e38b))
+
 ## [1.1.2](https://github.com/ExaDev/repo-index/compare/v1.1.1...v1.1.2) (2026-11-23)
 
 ### Build System
