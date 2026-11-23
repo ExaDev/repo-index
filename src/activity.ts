@@ -21,7 +21,7 @@ const BUCKET_MIDPOINTS_DAYS = WINDOW_DAYS.map(
 const HALF = 0.5;
 
 /**
- * How active a repository is, with older commits counting for less: a commit's weight halves every `halfLifeDays`. Commit counts are only known per window, so each marginal bucket (0 to 7, 7 to 30, 30 to 90 and 90 to 365 days) is weighted at its midpoint age. A repository with no commits in the last year scores 0, so the tail of the list falls back to its tie-break order.
+ * How active a repository is: each marginal bucket (0 to 7, 7 to 30, 30 to 90 and 90 to 365 days) contributes the base-2 logarithm of one plus its commit count, so volume counts with diminishing returns, times a weight that halves every `halfLifeDays` of the bucket's midpoint age, so recent activity counts for more. Commit counts are only known per window. A repository with no commits in the last year scores 0, so the tail of the list falls back to its tie-break order.
  */
 export function activityScore(repo: Repo, halfLifeDays: number): number {
   const { last7, last30, last90, last365 } = repo.commits;
@@ -34,7 +34,8 @@ export function activityScore(repo: Repo, halfLifeDays: number): number {
   return marginal.reduce(
     (sum, count, index) =>
       sum +
-      count * HALF ** ((BUCKET_MIDPOINTS_DAYS[index] ?? 0) / halfLifeDays),
+      Math.log2(1 + count) *
+        HALF ** ((BUCKET_MIDPOINTS_DAYS[index] ?? 0) / halfLifeDays),
     0,
   );
 }

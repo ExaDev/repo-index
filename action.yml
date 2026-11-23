@@ -53,7 +53,7 @@ inputs:
     description: What to do when a public repository refers to a private one (in its description, topics, README, dependencies, fork parent or template), which needs a credential that can see private repositories. fail stops before anything is written, warn annotates, off skips the check.
     default: fail
   sort:
-    description: activity, name, updated or stars. activity ranks by recent commits on the default branch, with each commit's weight halving every activity-half-life days, so the most recently busy repositories come first and the list tails off as work goes quiet.
+    description: activity, name, updated or stars. activity ranks by commits on the default branch. Each time bucket counts the logarithm of its commit count, so volume matters with diminishing returns, and each bucket's weight halves every activity-half-life days, so recent work outweighs a large old pile of commits.
     default: activity
   activity-half-life:
     description: Days over which a commit's weight halves when sorting by activity.
