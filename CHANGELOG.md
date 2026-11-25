@@ -1,3 +1,9 @@
+## [1.4.1](https://github.com/ExaDev/repo-index/compare/v1.4.0...v1.4.1) (2026-11-25)
+
+### Build System
+
+- override katex and minimatch to patched releases ([1c1d2cf](https://github.com/ExaDev/repo-index/commit/1c1d2cf8449c68833d80d22d4d160dfa50e43b4a))
+
 ## [1.4.0](https://github.com/ExaDev/repo-index/compare/v1.3.2...v1.4.0) (2026-11-23)
 
 ### Features
