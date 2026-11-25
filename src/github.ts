@@ -1,6 +1,6 @@
 import * as z from "zod";
 import { MS_PER_DAY, WINDOW_DAYS } from "./activity.ts";
-import { extractMentions } from "./relations.ts";
+import { extractMentions, withoutGeneratedRegion } from "./relations.ts";
 import type { SlugIndex } from "./relations.ts";
 import type { RawRelations, Repo } from "./types.ts";
 
@@ -463,6 +463,7 @@ export async function fetchRelations(
   token: string,
   repos: readonly Repo[],
   known: SlugIndex,
+  marker: string,
 ): Promise<Map<string, RawRelations>> {
   const batches: Repo[][] = [];
   for (let start = 0; start < repos.length; start += LINKS_BATCH) {
@@ -482,7 +483,7 @@ export async function fetchRelations(
       template: node?.templateRepository?.nameWithOwner ?? null,
       dependencies: dependencies[index] ?? [],
       mentions: extractMentions(
-        node?.readme?.text ?? "",
+        withoutGeneratedRegion(node?.readme?.text ?? "", marker),
         known,
         repo.nameWithOwner,
       ),

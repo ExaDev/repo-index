@@ -128,7 +128,12 @@ test("a dependency whose repository GitHub forbids is skipped, the others are ke
       ],
     ),
   );
-  const raw = await fetchRelations("t", [target], slugIndex([target]));
+  const raw = await fetchRelations(
+    "t",
+    [target],
+    slugIndex([target]),
+    "repo-index",
+  );
   assert.deepEqual(raw.get("acme/a")?.dependencies, ["acme/b"]);
 });
 
@@ -142,7 +147,8 @@ test("a forbidden error anywhere else still fails the run", async () => {
     ),
   );
   await assert.rejects(
-    async () => fetchRelations("t", [target], slugIndex([target])),
+    async () =>
+      fetchRelations("t", [target], slugIndex([target]), "repo-index"),
     /returned errors/,
   );
 });

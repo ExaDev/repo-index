@@ -22,6 +22,18 @@ export function slugIndex(repos: readonly Repo[]): SlugIndex {
   );
 }
 
+/** `text` without any region between `<!-- marker:start -->` and `<!-- marker:end -->`, so an index's own generated list never counts as the README mentioning every repository it lists. */
+export function withoutGeneratedRegion(text: string, marker: string): string {
+  const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(
+    new RegExp(
+      `<!-- ${escaped}:start -->[\\s\\S]*?<!-- ${escaped}:end -->`,
+      "g",
+    ),
+    "",
+  );
+}
+
 /**
  * The known repositories that `text` names as `owner/name` or as a github.com URL, never `self`, each once, in order of first appearance. Bare repository names are not references: only the full slug is, so a common word that happens to equal a repository name never counts.
  */

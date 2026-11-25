@@ -4,6 +4,7 @@ import { repo } from "./fixtures.ts";
 import {
   buildEdges,
   extractMentions,
+  withoutGeneratedRegion,
   findLeaks,
   relatedByRepo,
   relatedOf,
@@ -197,4 +198,14 @@ test("a private repository naming another private one is not a leak, and a publi
     isPrivate,
   );
   assert.deepEqual(leaks, []);
+});
+
+test("a generated index region is not a mention of every repository it lists", () => {
+  const text =
+    "See acme/a.\n<!-- repo-index:start -->\n| acme/b |\n<!-- repo-index:end -->\nAnd acme/c.";
+  assert.equal(
+    withoutGeneratedRegion(text, "repo-index"),
+    "See acme/a.\n\nAnd acme/c.",
+  );
+  assert.equal(withoutGeneratedRegion(text, "other"), text);
 });
