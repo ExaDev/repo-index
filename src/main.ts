@@ -95,7 +95,7 @@ export async function run(): Promise<void> {
   const checksLeaks = config.leakPolicy !== "off" && privateSlugs.size > 0;
   const raw: ReadonlyMap<string, RawRelations> =
     wantsRelated || checksLeaks
-      ? await fetchRelations(settings.token, included, everyRepo)
+      ? await fetchRelations(settings.token, included, everyRepo, config.marker)
       : new Map();
 
   const leaks = checksLeaks
