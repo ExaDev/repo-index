@@ -1,3 +1,9 @@
+## [1.4.2](https://github.com/ExaDev/repo-index/compare/v1.4.1...v1.4.2) (2026-11-25)
+
+### Bug Fixes
+
+- ignore the generated index region when finding README mentions ([278c9f7](https://github.com/ExaDev/repo-index/commit/278c9f7b1ba2364333b7ca4f23b93c546942cddb))
+
 ## [1.4.1](https://github.com/ExaDev/repo-index/compare/v1.4.0...v1.4.1) (2026-11-25)
 
 ### Build System
